@@ -65,11 +65,12 @@ OpenGLDisplayYUV::OpenGLDisplayYUV(QWidget* parent)
     , impl(new OpenGLDisplayYUVImpl(this))
 {
     setAttribute(Qt::WA_OpaquePaintEvent);
+//    setAttribute(Qt::WA_PaintOnScreen);
     setAttribute(Qt::WA_NoSystemBackground);
 
-//    impl->mRepaintTimer->setInterval(1000);
-//    connect(impl->mRepaintTimer, SIGNAL(timeout()), this, SLOT(update()));
-//    impl->mRepaintTimer->start();
+    impl->mRepaintTimer->setInterval(45);
+    connect(impl->mRepaintTimer, SIGNAL(timeout()), this, SLOT(update()));
+    impl->mRepaintTimer->start();
 }
 
 OpenGLDisplayYUV::~OpenGLDisplayYUV()
@@ -82,7 +83,7 @@ void OpenGLDisplayYUV::DisplayVideoFrame(unsigned char **data, int frameWidth, i
     impl->mVideoW = frameWidth;
     impl->mVideoH = frameHeight;
     impl->mBufYuv = data;
-    update();
+//    update();
 }
 
 void OpenGLDisplayYUV::initializeGL()

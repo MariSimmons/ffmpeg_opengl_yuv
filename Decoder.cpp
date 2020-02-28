@@ -7,7 +7,6 @@
 #include <sstream>
 
 #include <QDebug>
-#include <QThread>
 
 extern "C"
 {
@@ -41,6 +40,7 @@ class DecoderPrivate
     // ------ ffmpeg vodoo ------
     AVFormatContext* format_ctx = nullptr;
 
+    SwsContext *img_convert_ctx = nullptr;
     AVCodecContext* codec_ctx = nullptr;
     int video_stream_index;
 
@@ -127,14 +127,32 @@ void Decoder::run()
 {
     Q_D(Decoder);
 
+//    std::ofstream output_file;
+
+    d->img_convert_ctx = sws_getContext(d->codec_ctx->width,
+                                        d->codec_ctx->height,
+                                        d->pix_format,
+                                        d->codec_ctx->width,
+                                        d->codec_ctx->height,
+                                        AV_PIX_FMT_RGB24,
+                                        SWS_BICUBIC,
+                                        nullptr,
+                                        nullptr,
+                                        nullptr);
+
     int size = avpicture_get_size(AV_PIX_FMT_YUV420P, d->codec_ctx->width, d->codec_ctx->height);
 
     uint8_t* picture_buffer = (uint8_t*) (av_malloc(size));
     AVFrame* picture = av_frame_alloc();
+//    AVFrame* picture_rgb = av_frame_alloc();
+
     int size2 = avpicture_get_size(AV_PIX_FMT_RGB24, d->codec_ctx->width, d->codec_ctx->height);
 
+    uint8_t* picture_buffer_2 = (uint8_t*) (av_malloc(size2));
     avpicture_fill((AVPicture *) picture, picture_buffer, AV_PIX_FMT_YUV420P,
             d->codec_ctx->width, d->codec_ctx->height);
+//    avpicture_fill((AVPicture *) picture_rgb, picture_buffer_2, AV_PIX_FMT_RGB24,
+//            d->codec_ctx->width, d->codec_ctx->height);
 
 
     AVPacket packet;
@@ -142,15 +160,15 @@ void Decoder::run()
 
     while (av_read_frame(d->format_ctx, &packet) >= 0 && !d->isStop)
     {
-//        qInfo() << "Frame: " << d->cnt;
+        //qInfo() << "Frame: " << d->cnt;
         if (packet.stream_index == d->video_stream_index)
         {
-//            packet is video
-//            qInfo() << "2 Is Video";
+            //packet is video
+            //qInfo() << "2 Is Video";
             if (d->stream == nullptr)
             {
-//                create stream
-//                 qInfo() << "3 create stream";
+                //create stream
+                // qInfo() << "3 create stream";
                 d->stream = avformat_new_stream(d->output_ctx,
                                                 d->format_ctx->streams[d->video_stream_index]->codec->codec);
                 avcodec_copy_context(d->stream->codec,
@@ -162,15 +180,14 @@ void Decoder::run()
             int check = 0;
             packet.stream_index = d->stream->id;
 
-//             qInfo() << "decoding";
+            // qInfo() << "decoding";
             int result = avcodec_decode_video2(d->codec_ctx, picture, &check, &packet);
-//            qInfo() << "Bytes decoded " << result << " check " << check;
+            //qInfo() << "Bytes decoded " << result << " check " << check;
 
 
             d->display->DisplayVideoFrame(picture->data, d->codec_ctx->width, d->codec_ctx->height);
             d->cnt++;
         }
-
 //        av_free_packet(&packet);
 //        av_init_packet(&packet);
     }
@@ -179,6 +196,7 @@ void Decoder::run()
 
     av_free(picture);
     av_free(picture_buffer);
+    av_free(picture_buffer_2);
 
     av_read_pause(d->format_ctx);
     avio_close(d->output_ctx->pb);
