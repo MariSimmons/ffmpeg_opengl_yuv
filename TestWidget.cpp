@@ -35,7 +35,9 @@ TestWidget::TestWidget(QWidget *parent)
     : QWidget(parent)
     , impl(new TestWidgetImpl)
 {
-    QCoreApplication::setAttribute(Qt::AA_ShareOpenGLContexts);
+    QApplication::setAttribute(Qt::AA_ForceRasterWidgets, false);
+//    QCoreApplication::setAttribute(Qt::AA_ShareOpenGLContexts);
+    QCoreApplication::setAttribute(Qt::AA_UseDesktopOpenGL);
 
     impl->ui->setupUi(this);
     impl->ui->playAllButton->setEnabled(true);
@@ -64,7 +66,6 @@ TestWidget::~TestWidget()
 
 void TestWidget::playVideoWall()
 {
-    bool cam = true;
     impl->ui->playAllButton->setEnabled(false);
 
     QThreadPool::globalInstance()->setMaxThreadCount(10);
@@ -74,11 +75,9 @@ void TestWidget::playVideoWall()
     for (int i = 0; i < impl->mPlayers.count(); ++i)
     {
         Decoder* decoder = new Decoder(impl->mPlayers[i], this);
-//        if (!decoder->openRTSP(!cam ? "rtsp://freja.hiof.no:1935/rtplive/definst/hessdalen03.stream" : "rtsp://10.0.61.214:8554/109"))
-        if (!decoder->openRTSP("rtsp://10.0.61.214:8554/109"))
-            qWarning() << "HUI";
+        if (!decoder->openRTSP("rtsp://freja.hiof.no:1935/rtplive/definst/hessdalen03.stream"))
+            qWarning() << "Can't open rtsp";
 
-        cam = !cam;
         QObject::connect(impl->mPlayers[i], &OpenGLDisplayYUV::closed,decoder, &Decoder::stop);
         QObject::connect(decoder, &Decoder::finished, impl->mPlayers[i], &OpenGLDisplayYUV::deleteLater);
         QObject::connect(decoder, &Decoder::finished, this, &QApplication::quit);
