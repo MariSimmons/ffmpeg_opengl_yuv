@@ -1,6 +1,6 @@
 QT += core gui widgets
 
-TARGET = huihui
+TARGET = opengl_yuv
 CONFIG += console
 CONFIG -= app_bundle
 
